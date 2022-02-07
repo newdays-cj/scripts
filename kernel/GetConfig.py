@@ -40,7 +40,7 @@ def ObjsConfig(objs, makefile):
     content = content.replace("\\\n", " ").replace("\t", " ")
     content = re.sub(" +", " ", content)
     content = content.split("\n")
-    print("find", objs, "in", makefile)
+    #print("find", objs, "in", makefile)
 
     for obj in objs:
         config = ObjConfig(obj, content)
@@ -48,28 +48,34 @@ def ObjsConfig(objs, makefile):
             continue
         return config
    
-    return "Not Found"
+    return "Upper"
 
-def GetFileConfig(file):
+def GetFileConfig(__file):
+    file = __file
+    directory, file = os.path.split(file)
     file = file.strip("\n")
     if file[len(file) - 2:] != ".c":
-        return None
-    
-    directory, file = os.path.split(file)
-    objs = [file[:len(file) - 2] + ".o"]
+        directory, file = os.path.split(directory)
+        objs = [file + "/"]
+    else:
+        objs = [file[:len(file) - 2] + ".o"]
     
     while directory:
         makefile = directory + "/Makefile"
         directory, file = os.path.split(directory)
         config = ObjsConfig(objs, makefile)
         if config == "Not Found":
-            return None
+            break
         if config == "Upper":
             for i in range(0, len(objs)):
                 objs[i] = file + "/" + objs[i]
             objs = objs + [file + "/"]
             continue
         return config
+    
+    if __file.split("/")[0] == "arch":
+        return "CONFIG_" + __file.split("/")[1].upper()
+
     return None
 
 def GetConfigs(commit):
@@ -78,7 +84,7 @@ def GetConfigs(commit):
     for file in files:
         config = GetFileConfig(file)
         if config:
-            configs.append(config)
+            configs.append(config + " ")
     # Deduplication
     return list(set(configs))
 
@@ -124,6 +130,10 @@ def test():
 def main():
     if sys.argv[1] == "test":
         test()
+        
+    ret = GetConfigs(sys.argv[1])
+    for config in ret:
+        print(config)
 
 if __name__ == '__main__':
     main()
